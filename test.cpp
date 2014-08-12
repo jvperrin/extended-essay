@@ -33,6 +33,16 @@ int main () {
       }
     }
 
+    cout << "Seeking to " << offset << endl;
+    if (device.seekg(fpos(offset)) == 0) {
+      if (device.read(buffer, 512) == 0) {
+        cout << buffer << endl;
+      } else {
+        cout << "Read error\n";
+      }
+    } else {
+      cout << "Seek error\n";
+    }
     // sudo fsck -t ext4 /dev/sda7
 
     device.close();
