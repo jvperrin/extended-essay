@@ -1,23 +1,19 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <sys/ioctl.h>
-#include <unistd.h>
+#include <string.h>
 
 using namespace std;
 
 int main () {
-  const int BLOCK_SIZE = 512; // Number of bytes per logical sector, `sudo fdisk -l` shows the sector size (logical / physical).
-  const int NUM_BYTES = 2146435072; // Number of bytes in the device.
-  const int BUFFER_SIZE = 1048576 * 2; // Size of the buffer used for reading the data.
-  // 1MB: 1048576 timing
-  // real	22m33.236s
-  // user	0m0.100s
-  // sys	0m39.942s
-  // 16MB: 16769024 doesn't run?
+  const unsigned int BLOCK_SIZE = 512; // Number of bytes per logical sector, `sudo fdisk -l` shows the sector size (logical / physical).
+  const unsigned long long NUM_BYTES = 2146435072; // Number of bytes in the device.
+  const unsigned int BUFFER_SIZE = 512; // Size of the buffer used for reading the data.
+  // 1MB: 1048576 timing => 34s without output
   const char* filename = "/dev/sda7";
 
   char buffer[BUFFER_SIZE];
+  unsigned long long offset;
 
   ifstream device (filename, ios::in | ios::binary); // ifstream is for read-only access, fstream is for read/write.
 
@@ -29,10 +25,15 @@ int main () {
     // device.seekg (0, device.beg);
 
     for(int i = 0; i < (NUM_BYTES/BUFFER_SIZE); i++) {
-      cout << i << endl;
       device.read(buffer, BUFFER_SIZE);
-      cout.write(buffer, BUFFER_SIZE);
+
+      if (strcmp(buffer, "This is a full test this time, just to see what happens\n") == 0) {
+        offset = device.tellg();
+        cout << "Match at offset " << offset << endl;
+      }
     }
+
+    // sudo fsck -t ext4 /dev/sda7
 
     device.close();
   } else {
