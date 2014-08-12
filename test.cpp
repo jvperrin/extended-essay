@@ -13,9 +13,9 @@ int main () {
   const char* filename = "/dev/sda7";
 
   char buffer[BUFFER_SIZE];
-  unsigned long long offset;
+  unsigned long long offset = 0;
 
-  ifstream device (filename, ios::in | ios::binary); // ifstream is for read-only access, fstream is for read/write.
+  fstream device (filename, ios::in | ios::out | ios::binary); // fstream is for read/write.
 
   if (device.is_open()) {
     cout << "Opened!" << endl;
@@ -27,23 +27,34 @@ int main () {
     for(int i = 0; i < (NUM_BYTES/BUFFER_SIZE); i++) {
       device.read(buffer, BUFFER_SIZE);
 
-      if (strcmp(buffer, "This is a full test this time, just to see what happens\n") == 0) {
+      if (strcmp(buffer, "This is a full test this time, let's see if it works\n") == 0) {
         offset = device.tellg();
+        offset = offset - BUFFER_SIZE;
         cout << "Match at offset " << offset << endl;
       }
     }
 
-    cout << "Seeking to " << offset << endl;
-    if (device.seekg(fpos(offset)) == 0) {
-      if (device.read(buffer, 512) == 0) {
-        cout << buffer << endl;
+    if (offset != 0) {
+      cout << "Seeking to " << offset << endl;
+
+      device.clear(); // Clears any fail bits (eof) before seeking again.
+      if (device.seekg(offset, ios::beg).rdstate() == 0) {
+        if (device.read(buffer, BUFFER_SIZE).rdstate() == 0) {
+          cout << buffer << endl;
+          device.seekg(offset, ios::beg);
+          memset(&buffer[0], 0, BUFFER_SIZE);
+          strcpy(buffer, "This is the overwritten data");
+          cout << device.write(buffer, BUFFER_SIZE).rdstate() << endl;
+        } else {
+          cout << "Read error\n";
+        }
       } else {
-        cout << "Read error\n";
+        cout << "Seek error\n";
       }
+      // sudo fsck -t ext4 /dev/sda7
     } else {
-      cout << "Seek error\n";
+      cout << "No matches found!\n";
     }
-    // sudo fsck -t ext4 /dev/sda7
 
     device.close();
   } else {
