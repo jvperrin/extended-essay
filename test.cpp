@@ -5,24 +5,31 @@
 
 using namespace std;
 
+// Mount filesystem:
+//   sudo umount /dev/sda7
+// Unmount filesystem:
+//   sudo mount /dev/sda7
+// Check/repair filesystem:
+//   sudo fsck -t ext4 /dev/sda7
+
 int main () {
-  const unsigned int BLOCK_SIZE = 512; // Number of bytes per logical sector, `sudo fdisk -l` shows the sector size (logical / physical).
-  const unsigned long long NUM_BYTES = 2146435072; // Number of bytes in the device.
   const unsigned int BUFFER_SIZE = 512; // Size of the buffer used for reading the data.
-  // 1MB: 1048576 timing => 34s without output
+                                        //   Equal to the number of bytes in a logical sector.
+                                        //   `sudo fdisk -l` shows the sector size (logical / physical).
   const char* filename = "/dev/sda7";
 
   char buffer[BUFFER_SIZE];
   unsigned long long offset = 0;
 
-  fstream device (filename, ios::in | ios::out | ios::binary); // fstream is for read/write.
+  fstream device (filename, ios::in | ios::out | ios::binary);
 
   if (device.is_open()) {
     cout << "Opened!" << endl;
 
-    // device.seekg (0, device.end);
-    // cout << "Length of device: " << device.tellg() << " bytes" << endl;
-    // device.seekg (0, device.beg);
+    device.seekg (0, device.end);
+    const unsigned long long NUM_BYTES = device.tellg(); // Number of bytes in the device.
+    cout << "Length of device: " << NUM_BYTES << " bytes" << endl;
+    device.seekg (0, device.beg);
 
     for(int i = 0; i < (NUM_BYTES/BUFFER_SIZE); i++) {
       device.read(buffer, BUFFER_SIZE);
@@ -51,7 +58,6 @@ int main () {
       } else {
         cout << "Seek error\n";
       }
-      // sudo fsck -t ext4 /dev/sda7
     } else {
       cout << "No matches found!\n";
     }
