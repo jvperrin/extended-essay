@@ -12,16 +12,20 @@ using namespace std;
 // Check/repair filesystem:
 //   sudo fsck -t ext4 /dev/sda7
 
-int main () {
+// Show offset in decimal:
+//   strings --radix=d /dev/sda8
+
+int main (int argc, char* argv[]) {
+  const char* COMPARISON_STRING = "But I must explain to you how all this mistaken idea of denouncing pleasure and praising pain was born and I will give you a complete account of the system, and expound the actual teachings of the great explorer of the truth, the master-builder of human happiness. No one rejects, dislikes, or avoids pleasure itself, because it is pleasure, but because those who do not know how to pursue pleasure rationally encounter consequences that are extremely painful. Nor again is there anyone who loves or pursues or d";
   const unsigned int BUFFER_SIZE = 512; // Size of the buffer used for reading the data.
                                         //   Equal to the number of bytes in a logical sector.
                                         //   `sudo fdisk -l` shows the sector size (logical / physical).
-  const char* filename = "/dev/sda7";
+  // const char* filename = "/dev/sda8";
 
   char buffer[BUFFER_SIZE];
   unsigned long long offset = 0;
 
-  fstream device (filename, ios::in | ios::out | ios::binary);
+  fstream device (argv[1], ios::in | ios::out | ios::binary);
 
   if (device.is_open()) {
     cout << "Opened!" << endl;
@@ -34,37 +38,16 @@ int main () {
     for(int i = 0; i < (NUM_BYTES/BUFFER_SIZE); i++) {
       device.read(buffer, BUFFER_SIZE);
 
-      if (strcmp(buffer, "This is a full test this time, let's see if it works\n") == 0) {
+      if (strncmp(buffer, COMPARISON_STRING, 512) == 0) {
         offset = device.tellg();
         offset = offset - BUFFER_SIZE;
         cout << "Match at offset " << offset << endl;
       }
     }
 
-    if (offset != 0) {
-      cout << "Seeking to " << offset << endl;
-
-      device.clear(); // Clears any fail bits (eof) before seeking again.
-      if (device.seekg(offset, ios::beg).rdstate() == 0) {
-        if (device.read(buffer, BUFFER_SIZE).rdstate() == 0) {
-          cout << buffer << endl;
-          device.seekg(offset, ios::beg);
-          memset(&buffer[0], 0, BUFFER_SIZE);
-          strcpy(buffer, "This is the overwritten data");
-          cout << device.write(buffer, BUFFER_SIZE).rdstate() << endl;
-        } else {
-          cout << "Read error\n";
-        }
-      } else {
-        cout << "Seek error\n";
-      }
-    } else {
-      cout << "No matches found!\n";
-    }
-
     device.close();
   } else {
-    cout << "Unable to open " << filename << endl;
+    cout << "Unable to open " << argv[1] << endl;
   }
 
   return 0;
